@@ -2,92 +2,105 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
-class PowerFactorEnv(gym.Env):
-    """Custom Environment that follows gymnasium interface"""
-    metadata = {"render_modes": ["console"]}
+# SECTION 1: THE PHYSICS ENGINE 
+def get_pf(P, Q):
+    """Calculates Power Factor from Real (P) and Reactive (Q) power."""
+    # Standard Electrical Formula: PF = P / S, where S = sqrt(P^2 + Q^2)
+    apparent_power = np.sqrt(P**2 + Q**2)
+    return P / apparent_power if apparent_power > 0 else 1.0
 
+#  SECTION 2: THE GYMNASIUM ENVIRONMENT 
+class IndustrialPFEnv(gym.Env):
+    """
+    Custom Environment for Adaptive Power Factor Correction[cite: 7, 110].
+    Models a 100kW Industrial Motor with switchable capacitor banks[cite: 111, 112].
+    """
     def __init__(self):
-        super(PowerFactorEnv, self).__init__()
+        super(IndustrialPFEnv, self).__init__()
         
-        # Action Space: Two switchable capacitor banks (0 = Off, 1 = On for each)
-        # Using MultiBinary for independent ON/OFF control of multiple banks
-        self.action_space = spaces.MultiBinary(2) 
+        # Machine Specification 
+        self.machine_name = "50HP Induction Motor (Simulated)"
+        self.P = 100.0  # Real Power in kW
+        self.cap_bank_size = 30.0  # kVAR per capacitor bank 
+        
+        # Action Space: 4 discrete actions [cite: 120]
+        # 0: No Banks, 1: Bank A, 2: Bank B, 3: Both Banks
+        self.action_space = spaces.Discrete(4)
+        
+        # Observation Space: [Current PF, Reactive Demand, Bank Status] 
+        self.observation_space = spaces.Box(
+            low=np.array([0.0, 0.0, 0.0]), 
+            high=np.array([1.0, 500.0, 3.0]), 
+            dtype=np.float32
+        )
 
-        # Observation Space: Power Factor (0 to 1), Reactive Power Demand, 
-        # Cap Bank 1 Status (0/1), Cap Bank 2 Status (0/1), Time Index (0 to 24)
-        # We use a Box space for continuous and discrete numerical values
-        low = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
-        high = np.array([1.0, 10000.0, 1.0, 1.0, 24.0], dtype=np.float32)
-        self.observation_space = spaces.Box(low, high, dtype=np.float32)
+    def _generate_load(self):
+        # Baseline inductive load + random fluctuation to mimic machine cycles
+        base_Q = 80.0 
+        fluctuation = np.random.uniform(-10, 10)
+        return base_Q + fluctuation
+
+    def step(self, action):
+        # 1. Generate the 'BEFORE' Variables (Uncorrected State) 
+        Q_load = self._generate_load()
+        pf_before = get_pf(self.P, Q_load)
+
+        # 2. Apply Correction (The 'Action')
+        # Map discrete action to number of active banks
+        active_banks = 0
+        if action == 1 or action == 2:
+            active_banks = 1
+        elif action == 3:
+            active_banks = 2
+            
+        total_correction = active_banks * self.cap_bank_size
+        Q_after = Q_load - total_correction
+        pf_after = get_pf(self.P, Q_after)
+
+        # 3. Calculate Reward 
+        # Positive reward for PF > 0.95, penalties for low PF or switching
+        reward = 1.0 if pf_after >= 0.95 else -1.0
+        
+        # 4. Construct Observation for the Agent
+        obs = np.array([pf_after, Q_after, float(action)], dtype=np.float32)
+
+        # 5. DISPLAY OUTPUT (Verification Proof for Critique)
+        self._print_comparison(pf_before, Q_load, pf_after, Q_after, action)
+
+        return obs, reward, False, False, {}
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        
-        # Reset the environment to an initial state (e.g., start of a new shift)
-        self.current_time = 0.0
-        self.cap_banks = np.array([0.0, 0.0], dtype=np.float32)
-        
-        # Calculate initial power factor and reactive demand using your mathematical models here
-        initial_pf = 0.82 
-        initial_reactive_power = 1500.0 
+        Q_initial = 80.0
+        obs = np.array([get_pf(self.P, Q_initial), Q_initial, 0.0], dtype=np.float32)
+        return obs, {}
 
-        observation = np.array([
-            initial_pf, 
-            initial_reactive_power, 
-            self.cap_banks[0], 
-            self.cap_banks[1], 
-            self.current_time
-        ], dtype=np.float32)
+    def _print_comparison(self, pf_before, Q_before, pf_after, Q_after, action):
+        """Prints the Before/After state requested by the user."""
+        print(f"\n--- ENVIRONMENT STEP (Action: {action} Banks) ---")
+        print(f"Machine Spec: {self.machine_name} | Rating: {self.P}kW")
         
-        info = {}
-        return observation, info
+        print(f"[BEFORE CORRECTION]")
+        print(f"  Real Power (P): {self.P} kW")
+        print(f"  Reactive Power (Q): {Q_before:.2f} kVAR")
+        print(f"  RESULTING PF: {pf_before:.4f}")
+        
+        print(f"[AFTER CORRECTION]")
+        print(f"  Real Power (P): {self.P} kW")
+        print(f"  Net Reactive Power (Q): {Q_after:.2f} kVAR")
+        print(f"  RESULTING PF: {pf_after:.4f}")
+        print("-" * 40)
 
-    def step(self, action):
-        # 1. Apply the agent's action (switch capacitor banks)
-        self.cap_banks = action.astype(np.float32)
-        
-        # 2. Advance time
-        self.current_time += 1.0
-        
-        # 3. Calculate new electrical behavior (your mathematical load models go here)
-        new_pf = 0.96 # Placeholder for the calculated PF after correction
-        new_reactive_power = 800.0 # Placeholder
-        
-        # 4. Calculate Reward 
-        # (e.g., positive for PF > 0.95, penalty for switching)
-        reward = 1.0 if new_pf >= 0.95 else -1.0
-        
-        # 5. Check if the episode is done (e.g., end of the 24-hour shift)
-        terminated = bool(self.current_time >= 24.0)
-        truncated = False 
-        
-        # 6. Format the observation
-        observation = np.array([
-            new_pf, 
-            new_reactive_power, 
-            self.cap_banks[0], 
-            self.cap_banks[1], 
-            self.current_time
-        ], dtype=np.float32)
-        
-        info = {}
-        return observation, reward, terminated, truncated, info
-
-    def render(self):
-        # Optional: Print the current state to the console
-        pass
-
-# Initialize the environment
-env = PowerFactorEnv()
-obs, info = env.reset()
-
-print("Initial Observation:", obs)
-
-# Run a quick 5-step test with random actions
-for i in range(5):
-    random_action = env.action_space.sample()
-    obs, reward, terminated, truncated, info = env.step(random_action)
-    print(f"Step {i+1} | Action: {random_action} | Reward: {reward} | Obs: {obs}")
+# SECTION 3: RUNNING THE PROOF OF CONCEPT
+if __name__ == "__main__":
+    # Initialize the verified environment 
+    env = IndustrialPFEnv()
+    obs, info = env.reset()
     
-    if terminated or truncated:
-        obs, info = env.reset()
+    print("Starting Proof of Concept Run...")
+    
+    # Test Scenario 1: No Correction
+    env.step(0)
+    
+    # Test Scenario 2: Full Correction (Both Banks)
+    env.step(3)
