@@ -91,7 +91,7 @@ class IndustrialPFEnv(gym.Env):
 
         print(f"\nCORRECTION SUMMARY")
         print(f"  Reactive Power Removed : {total_correction:.1f} kVAR")
-        print(f"  Apparent Power Reduced : {S_fixed - S_after:.2f} kVA")
+        print(f"  Apparent Power Reduced : {max(0.0, S_fixed - S_after):.2f} kVA")
         print(f"  PF Improvement         : {improvement:.2f}%")
         print(f"\n  → Run manual_test.py to manually verify this result.")
         print(f"{'='*80}")

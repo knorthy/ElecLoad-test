@@ -36,7 +36,7 @@ def print_manual_test(data, active_banks):
     print(f"  Corrected PF         : {pf_after:.4f}")
     print(f"  Banks Used           : {active_banks} bank{'s' if active_banks != 1 else ''}")
     print(f"\n  Reactive Power Removed : {total_correction:.1f} kVAR")
-    print(f"  Apparent Power Reduced : {S_fixed - S_after:.2f} kVA")
+    print(f"  Apparent Power Reduced : {max(0.0, S_fixed - S_after):.2f} kVA")
     print(f"  PF Improvement         : {improvement:.2f}%")
 
     # Compare against recommended
