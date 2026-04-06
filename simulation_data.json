@@ -1,0 +1,18 @@
+{
+    "machine_name": "50HP Induction Motor (Simulated)",
+    "P": 100.0,
+    "cap_bank_size": 30.0,
+    "num_banks": 3,
+    "Q_fixed": 77.5872,
+    "pf_fixed": 0.7901,
+    "S_fixed": 126.5692,
+    "optimal_banks": 2,
+    "recommended": {
+        "Q_after": 17.5872,
+        "S_after": 101.5348,
+        "pf_after": 0.9849,
+        "kvar_removed": 60.0,
+        "kva_reduced": 25.0345,
+        "pf_improvement": 24.656
+    }
+}
