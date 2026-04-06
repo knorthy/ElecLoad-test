@@ -3,16 +3,16 @@
     "P": 100.0,
     "cap_bank_size": 30.0,
     "num_banks": 3,
-    "Q_fixed": 77.5872,
-    "pf_fixed": 0.7901,
-    "S_fixed": 126.5692,
+    "Q_fixed": 89.6198,
+    "pf_fixed": 0.7447,
+    "S_fixed": 134.2822,
     "optimal_banks": 2,
     "recommended": {
-        "Q_after": 17.5872,
-        "S_after": 101.5348,
-        "pf_after": 0.9849,
+        "Q_after": 29.6198,
+        "S_after": 104.2945,
+        "pf_after": 0.9588,
         "kvar_removed": 60.0,
-        "kva_reduced": 25.0345,
-        "pf_improvement": 24.656
+        "kva_reduced": 29.9878,
+        "pf_improvement": 28.753
     }
 }
