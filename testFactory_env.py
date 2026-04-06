@@ -22,7 +22,7 @@ class IndustrialPFEnv(gym.Env):
         self.P = 100.0  # Real Power in kW
         self.cap_bank_size = 30.0  # kVAR per capacitor bank 
         
-        # Action Space: 4 discrete actions [cite: 120]
+        # Action Space: 4 discrete actions 
         self.action_space = spaces.Discrete(4)
         
         # Observation Space: [Current PF, Reactive Demand, Bank Status] 
@@ -33,7 +33,7 @@ class IndustrialPFEnv(gym.Env):
         )
 
     def _generate_load(self):
-        # Baseline inductive load + random fluctuation to mimic machine cycles [cite: 72]
+        # Baseline inductive load + random fluctuation to mimic machine cycles 
         base_Q = 80.0 
         fluctuation = np.random.uniform(-10, 10)
         return base_Q + fluctuation
@@ -43,7 +43,7 @@ class IndustrialPFEnv(gym.Env):
         Q_load = self._generate_load()
         pf_before = get_pf(self.P, Q_load)
 
-        # 2. Apply Correction (The 'Action') [cite: 120]
+        # 2. Apply Correction (The 'Action') 
         active_banks = 0
         if action == 1 or action == 2:
             active_banks = 1
@@ -54,7 +54,7 @@ class IndustrialPFEnv(gym.Env):
         Q_after = Q_load - total_correction
         pf_after = get_pf(self.P, Q_after)
 
-        # 3. Calculate Reward [cite: 124]
+        # 3. Calculate Reward 
         reward = 1.0 if pf_after >= 0.95 else -1.0
         
         # 4. Construct Observation
@@ -73,7 +73,7 @@ class IndustrialPFEnv(gym.Env):
 
     def _print_comparison(self, pf_before, Q_before, pf_after, Q_after, action):
         """Prints the Before/After state and the Power Reduction (Savings)."""
-        # Calculate Apparent Power (S = sqrt(P^2 + Q^2)) [cite: 35]
+        # Calculate Apparent Power (S = sqrt(P^2 + Q^2))
         S_before = np.sqrt(Q_before**2 + self.P**2)
         S_after = np.sqrt(Q_after**2 + self.P**2)
         s_reduction = S_before - S_after
