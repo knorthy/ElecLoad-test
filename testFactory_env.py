@@ -11,8 +11,8 @@ def get_pf(P, Q):
 # SECTION 2: THE GYMNASIUM ENVIRONMENT 
 class IndustrialPFEnv(gym.Env):
     """
-    Custom Environment for Adaptive Power Factor Correction[cite: 7, 110].
-    Models a 100kW Industrial Motor with switchable capacitor banks[cite: 111, 112].
+    Custom Environment for Adaptive Power Factor Correction
+    Models a 100kW Industrial Motor with switchable capacitor banks
     """
     def __init__(self):
         super(IndustrialPFEnv, self).__init__()
